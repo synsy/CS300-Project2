@@ -129,6 +129,9 @@
   <ItemGroup>
     <ClCompile Include="CS300-Project2.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\codel\Downloads\CourseInfo.csv" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

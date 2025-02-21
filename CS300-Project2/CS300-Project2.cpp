@@ -6,6 +6,8 @@
 
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -41,14 +43,15 @@ private:
 		}
 	};
 
-	vector<Node> nodes;
+	vector<Node*> nodes;
 	unsigned int tableSize = DEFAULT_SIZE;
-	unsigned int hash(int key);
+	unsigned int hash(string key);
 
 public:
 	HashTable();
 	HashTable(unsigned int size);
 	virtual ~HashTable();
+	void Insert(Course course);
 	void PrintAll();
 	void PrintCourse(string courseNumber);
 };
@@ -92,10 +95,32 @@ HashTable::~HashTable() {
  * @param key The key to hash
  * @return The calculated hash
  */
-unsigned int HashTable::hash(int key) {
+unsigned int HashTable::hash(string key) {
 	// Logic to calculate a hash value
-	// return key tableSize
-	return key % tableSize;
+	unsigned int hashValue = 0;
+	for (char ch : key) {
+		hashValue = (hashValue * 31) + ch;
+	}
+	return hashValue % tableSize;
+}
+
+/**
+ * Insert a course into the hash table
+ */
+void HashTable::Insert(Course course) {
+	unsigned int key = hash(course.courseNumber);
+	Node* newNode = new Node(course, key);
+
+	if (nodes[key] == nullptr) {
+		nodes[key] = newNode;
+	}
+	else {
+		Node* temp = nodes[key];
+		while (temp->next) {
+			temp = temp->next;
+		}
+		temp->next = newNode;
+	}
 }
 
 /**
@@ -103,6 +128,12 @@ unsigned int HashTable::hash(int key) {
  */
 void HashTable::PrintAll() {
 	//FIXME: Implement this function
+	for (auto node : nodes) {
+		while (node) {
+			cout << node->course.courseNumber << ", " << node->course.courseName << endl;
+			node = node->next;
+		}
+	}
 }
 
 /**
@@ -110,10 +141,66 @@ void HashTable::PrintAll() {
 */
 void HashTable::PrintCourse(string courseNumber) {
 	//FIXME: Implement this function
+	unsigned int key = hash(courseNumber);
+	Node* node = nodes[key];
+	while (node) {
+		if (node->course.courseNumber == courseNumber) {
+			cout << node->course.courseNumber << ", " << node->course.courseName << endl;
+			if (!node->course.coursePrerequisites.empty()) {
+				cout << "Prerequisites: ";
+				for (const string& prereq : node->course.coursePrerequisites) {
+					cout << prereq << " ";
+				}
+				cout << endl;
+			}
+			else {
+				cout << "No prerequisites" << endl;
+			}
+			return;
+		}
+		node = node->next;
+	}
+	cout << "Course not found" << endl;
+}
+
+void LoadCoursesFromFile(string fileName, HashTable& table) {
+	ifstream file(fileName);
+	if (!file) {
+		cerr << "Error opening file: " << fileName << endl;
+		perror("Error Details");  // This will print the system error message
+		return;
+	}
+	if (!file.is_open()) {
+		cout << "Error opening file." << endl;
+		return;
+	}
+
+	string line;
+	while (getline(file, line)) {
+		stringstream ss(line);
+		string courseNumber, courseName, prereq;
+		vector<string> prerequisites;
+
+		getline(ss, courseNumber, ',');
+		getline(ss, courseName, ',');
+
+		while (getline(ss, prereq, ',')) {
+			prerequisites.push_back(prereq);
+		}
+
+		Course course = { courseNumber, courseName, prerequisites };
+		table.Insert(course);
+	}
+
+	file.close();
+	cout << "Courses loaded successfully." << endl;
 }
 
 int main()
 {
+	HashTable table;
+	string courseNumber;
+
 	cout << "Welcome to the Course Planner!" << endl;
 
     int choice = 0;
@@ -129,13 +216,15 @@ int main()
 		switch (choice)
 		{
 		case 1:
-			cout << "Load Course Data" << endl;
+			LoadCoursesFromFile("CourseInfo.csv", table);
 			break;
 		case 2:
-			cout << "Print Course List" << endl;
+			table.PrintAll();
 			break;
 		case 3:
-			cout << "Print Course" << endl;
+			cout << "What course do you want to know about? ";
+			cin >> courseNumber;
+			table.PrintCourse(courseNumber);
 			break;
 		case 9:
 			cout << "Thank you for using the course planner!" << endl;
